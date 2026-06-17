@@ -25,7 +25,8 @@ describe('prompt builders', () => {
       maxResults: 3,
     });
 
-    expect(prompt).toContain('web search and web fetch');
+    expect(prompt).toContain('Search the web for: xAI Grok Build headless scripting');
+    expect(prompt).not.toContain('Use Grok CLI runtime web search');
     expect(prompt).toContain('docs.x.ai');
     expect(prompt).toContain('example.com');
     expect(prompt).toContain('primary sources');
