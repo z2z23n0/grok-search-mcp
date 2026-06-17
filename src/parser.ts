@@ -6,6 +6,7 @@ type GrokEnvelope = {
 };
 
 const urlPattern = /https?:\/\/[^\s<>"')\]]+/g;
+const MAX_SUMMARY_LENGTH = 1000;
 
 export const extractGrokText = (stdout: string): string => {
   const trimmed = stdout.trim();
@@ -41,6 +42,39 @@ export const extractGrokText = (stdout: string): string => {
 
 export const extractUrls = (text: string): string[] =>
   Array.from(new Set((text.match(urlPattern) ?? []).map((url) => url.replace(/[.,;:]+$/, ''))));
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const sourceFromUrl = (url: string): string | undefined => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+};
+
+const titleFromMarkdownLink = (text: string, url: string): string | undefined => {
+  const match = text.match(new RegExp(`\\[([^\\]]{1,120})\\]\\(${escapeRegExp(url)}\\)`));
+  return match?.[1]?.trim() || undefined;
+};
+
+const snippetForUrl = (text: string, url: string): string | undefined => {
+  const line = text.split(/\r?\n/).find((candidate) => candidate.includes(url));
+  return line?.replace(/\s+/g, ' ').replace(/^[-*]\s*/, '').trim().slice(0, 300) || undefined;
+};
+
+const synthesizeItemsFromUrls = (urls: string[], rawText: string, fallbackSnippet?: string): SearchItem[] =>
+  urls.map((url) => {
+    const source = sourceFromUrl(url);
+    const title = titleFromMarkdownLink(rawText, url) ?? source;
+    const snippet = fallbackSnippet?.trim().slice(0, 300) || snippetForUrl(rawText, url);
+    return {
+      ...(title && { title }),
+      url,
+      ...(source && { source }),
+      ...(snippet && { snippet }),
+    };
+  });
 
 const stripJsonFence = (text: string): string => {
   const trimmed = text.trim();
@@ -108,6 +142,27 @@ const normalizeItems = (value: unknown): SearchItem[] => {
     }));
 };
 
+const fallbackResult = (
+  rawText: string,
+  mode: SearchMode,
+  config: RuntimeConfig,
+  urls: string[],
+  warnings: string[],
+): SearchResult => ({
+  summary: rawText.trim().slice(0, MAX_SUMMARY_LENGTH),
+  items: synthesizeItemsFromUrls(urls, rawText),
+  urls,
+  rawText,
+  diagnostics: {
+    mode,
+    parseOk: false,
+    structured: false,
+    model: config.model,
+    isolatedHome: config.profileHome,
+    warnings,
+  },
+});
+
 export const parseSearchText = (rawText: string, mode: SearchMode, config: RuntimeConfig): SearchResult => {
   const warnings: string[] = [];
   const urlsFromText = extractUrls(rawText);
@@ -115,19 +170,7 @@ export const parseSearchText = (rawText: string, mode: SearchMode, config: Runti
 
   if (!jsonObject) {
     warnings.push('Grok did not return a parseable JSON object; using raw text fallback.');
-    return {
-      summary: rawText.trim().slice(0, 1000),
-      items: [],
-      urls: urlsFromText,
-      rawText,
-      diagnostics: {
-        mode,
-        parseOk: false,
-        model: config.model,
-        isolatedHome: config.profileHome,
-        warnings,
-      },
-    };
+    return fallbackResult(rawText, mode, config, urlsFromText, warnings);
   }
 
   try {
@@ -136,14 +179,17 @@ export const parseSearchText = (rawText: string, mode: SearchMode, config: Runti
     const declaredUrls = Array.isArray(parsed.urls)
       ? parsed.urls.filter((url): url is string => typeof url === 'string')
       : [];
+    const urls = Array.from(new Set([...declaredUrls, ...items.flatMap((item) => (item.url ? [item.url] : [])), ...urlsFromText]));
+    const summary = typeof parsed.summary === 'string' ? parsed.summary : '';
     return {
-      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
-      items,
-      urls: Array.from(new Set([...declaredUrls, ...items.flatMap((item) => (item.url ? [item.url] : [])), ...urlsFromText])),
+      summary,
+      items: items.length ? items : synthesizeItemsFromUrls(urls, rawText, summary),
+      urls,
       rawText,
       diagnostics: {
         mode,
         parseOk: true,
+        structured: true,
         model: config.model,
         isolatedHome: config.profileHome,
         warnings,
@@ -151,18 +197,6 @@ export const parseSearchText = (rawText: string, mode: SearchMode, config: Runti
     };
   } catch {
     warnings.push('Grok returned JSON-looking text that failed JSON.parse; using raw text fallback.');
-    return {
-      summary: rawText.trim().slice(0, 1000),
-      items: [],
-      urls: urlsFromText,
-      rawText,
-      diagnostics: {
-        mode,
-        parseOk: false,
-        model: config.model,
-        isolatedHome: config.profileHome,
-        warnings,
-      },
-    };
+    return fallbackResult(rawText, mode, config, urlsFromText, warnings);
   }
 };
