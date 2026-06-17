@@ -49,7 +49,6 @@ export const buildWebSearchPrompt = (args: WebSearchArgs): string => {
   ].filter(Boolean);
 
   return [
-    'Use Grok CLI runtime web search and web fetch tools.',
     `Search the web for: ${args.query}`,
     ...filters,
     maxResultsLine(args.maxResults),
