@@ -15,6 +15,9 @@ export type InspectSummary = {
   hooks: number;
   skills: number;
   mcpServers: number;
+  externalHooks: number;
+  externalSkills: number;
+  externalMcpServers: number;
 };
 
 type ExecError = Error & {
@@ -131,15 +134,39 @@ export const runLogin = async (config: RuntimeConfig, extraArgs: string[] = []):
 
 export const inspectIsolation = async (config: RuntimeConfig): Promise<InspectSummary> => {
   const stdout = await runGrok(['inspect', '--json'], config);
-  const parsed = JSON.parse(stdout) as {
-    hooks?: unknown[];
-    skills?: unknown[];
-    mcpServers?: unknown[];
-  };
+  return summarizeInspect(JSON.parse(stdout), config.profileHome);
+};
+
+type InspectSource = {
+  path?: unknown;
+};
+
+type InspectEntry = {
+  source?: InspectSource;
+};
+
+type InspectJson = {
+  hooks?: InspectEntry[];
+  skills?: InspectEntry[];
+  mcpServers?: InspectEntry[];
+};
+
+const isExternalEntry = (entry: InspectEntry, profileHome: string): boolean => {
+  const path = entry.source?.path;
+  return typeof path !== 'string' || !path.startsWith(profileHome);
+};
+
+export const summarizeInspect = (parsed: InspectJson, profileHome: string): InspectSummary => {
+  const hooks = parsed.hooks ?? [];
+  const skills = parsed.skills ?? [];
+  const mcpServers = parsed.mcpServers ?? [];
   return {
-    hooks: parsed.hooks?.length ?? 0,
-    skills: parsed.skills?.length ?? 0,
-    mcpServers: parsed.mcpServers?.length ?? 0,
+    hooks: hooks.length,
+    skills: skills.length,
+    mcpServers: mcpServers.length,
+    externalHooks: hooks.filter((entry) => isExternalEntry(entry, profileHome)).length,
+    externalSkills: skills.filter((entry) => isExternalEntry(entry, profileHome)).length,
+    externalMcpServers: mcpServers.filter((entry) => isExternalEntry(entry, profileHome)).length,
   };
 };
 

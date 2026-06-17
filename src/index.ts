@@ -8,7 +8,11 @@ const printDoctor = async (): Promise<number> => {
   const config = loadConfig();
   const isolation = await inspectIsolation(config);
   const authenticated = await checkAuthenticated(config);
-  const ok = authenticated && isolation.hooks === 0 && isolation.skills === 0 && isolation.mcpServers === 0;
+  const ok =
+    authenticated &&
+    isolation.externalHooks === 0 &&
+    isolation.externalSkills === 0 &&
+    isolation.externalMcpServers === 0;
   const result = {
     ok,
     grokBin: config.grokBin,

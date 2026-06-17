@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RuntimeConfig } from '../src/config.js';
-import { buildGrokArgs, buildIsolatedEnv, formatGrokError } from '../src/grokCli.js';
+import { buildGrokArgs, buildIsolatedEnv, formatGrokError, summarizeInspect } from '../src/grokCli.js';
 
 const config: RuntimeConfig = {
   grokBin: '/opt/grok/bin/grok',
@@ -45,5 +45,24 @@ describe('grok CLI adapter', () => {
     const error = Object.assign(new Error('failed'), { stdout: 'You are not authenticated.' });
 
     expect(formatGrokError(error, config).message).toContain('isolated Grok profile is not authenticated');
+  });
+
+  it('separates isolated profile skills from external configuration', () => {
+    const summary = summarizeInspect(
+      {
+        hooks: [],
+        skills: [
+          { source: { path: '/tmp/isolated-grok-home/.grok/skills/help/SKILL.md' } },
+          { source: { path: '/Users/example/.claude/skills/browser-use/SKILL.md' } },
+        ],
+        mcpServers: [{ source: { path: '/Users/example/.cursor/mcp.json' } }],
+      },
+      '/tmp/isolated-grok-home',
+    );
+
+    expect(summary.skills).toBe(2);
+    expect(summary.externalSkills).toBe(1);
+    expect(summary.externalMcpServers).toBe(1);
+    expect(summary.externalHooks).toBe(0);
   });
 });
