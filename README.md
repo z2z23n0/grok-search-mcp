@@ -2,6 +2,13 @@
 
 MCP server for using the local Grok CLI as a search tool from Codex.
 
+This project exists to give coding agents a better search lane when the default
+search experience is not enough. Grok's search, especially for X/Twitter
+content, is often noticeably better than what Codex or Claude Code can reach on
+their own. `grok-search-mcp` exposes that advantage through a small MCP server,
+so an agent can ask Grok for web or X search results without turning Grok into a
+general chat dependency.
+
 This project is intentionally narrow:
 
 - no xAI API key
