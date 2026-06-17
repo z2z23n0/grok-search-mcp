@@ -13,6 +13,7 @@ export type SearchItem = {
 export type SearchDiagnostics = {
   mode: SearchMode;
   parseOk: boolean;
+  structured: boolean;
   model: string;
   isolatedHome: string;
   warnings: string[];

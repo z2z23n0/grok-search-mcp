@@ -1,7 +1,7 @@
 import type { SearchMode, WebSearchArgs, XSearchArgs } from './types.js';
 
-const jsonContract = `
-Return only a JSON object with this exact shape:
+const outputGuidance = `
+Prefer a JSON object with this shape when it does not get in the way of search quality:
 {
   "summary": "one concise paragraph",
   "items": [
@@ -17,7 +17,7 @@ Return only a JSON object with this exact shape:
   ],
   "urls": ["all important source URLs"]
 }
-Do not include markdown fences, commentary, or fields outside this JSON object.
+If you cannot confidently format JSON, return concise plain text with clear source URLs.
 `;
 
 const maxResultsLine = (maxResults: number | undefined): string =>
@@ -37,7 +37,7 @@ export const buildXSearchPrompt = (args: XSearchArgs): string => {
     ...filters,
     maxResultsLine(args.maxResults),
     'Prefer direct x.com status URLs. Do not invent URLs.',
-    jsonContract,
+    outputGuidance,
   ].join('\n');
 };
 
@@ -53,7 +53,7 @@ export const buildWebSearchPrompt = (args: WebSearchArgs): string => {
     ...filters,
     maxResultsLine(args.maxResults),
     'Prefer primary sources and stable canonical URLs. Do not invent URLs.',
-    jsonContract,
+    outputGuidance,
   ].join('\n');
 };
 
