@@ -1,13 +1,14 @@
 # grok-search-mcp
 
-MCP server for using the local Grok CLI as a search tool from Codex.
+MCP server that brings Grok CLI web and X/Twitter search to Codex and Claude
+Code.
 
-This project exists to give coding agents a better search lane when the default
-search experience is not enough. Grok's search, especially for X/Twitter
-content, is often noticeably better than what Codex or Claude Code can reach on
-their own. `grok-search-mcp` exposes that advantage through a small MCP server,
-so an agent can ask Grok for web or X search results without turning Grok into a
-general chat dependency.
+This project exists to give Codex and Claude Code a better search lane when
+their built-in search experience is not enough. Grok's search, especially for
+X/Twitter content, is often noticeably better than what these coding agents can
+reach on their own. `grok-search-mcp` exposes that advantage through a small,
+isolated MCP server, so agents can ask Grok for web or X search results without
+turning Grok into a general chat dependency.
 
 This project is intentionally narrow:
 
@@ -96,7 +97,9 @@ npx -y github:z2z23n0/grok-search-mcp doctor
 }
 ```
 
-## Codex config
+## Client setup
+
+### Codex
 
 Add this to `~/.codex/config.toml`:
 
@@ -117,6 +120,25 @@ NPM_CONFIG_REGISTRY = "https://registry.npmjs.org"
 ```
 
 Restart Codex after editing MCP config.
+
+### Claude Code
+
+Add the MCP server with Claude Code's CLI:
+
+```bash
+claude mcp add --scope user --transport stdio grok-search \
+  --env GROK_BIN=/Users/zhangyuze/.grok/bin/grok \
+  --env GROK_SEARCH_MCP_HOME=$HOME/.grok-search-mcp \
+  --env GROK_SEARCH_MCP_MODEL=grok-build \
+  --env NPM_CONFIG_REGISTRY=https://registry.npmjs.org \
+  -- npx -y github:z2z23n0/grok-search-mcp
+```
+
+Check the registration:
+
+```bash
+claude mcp list
+```
 
 Example prompts:
 

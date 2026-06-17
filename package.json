@@ -1,7 +1,7 @@
 {
   "name": "grok-search-mcp",
   "version": "0.1.0",
-  "description": "MCP server exposing isolated Grok CLI web and X search for Codex.",
+  "description": "Better web and X/Twitter search for Codex and Claude Code, powered by Grok CLI.",
   "type": "module",
   "bin": {
     "grok-search-mcp": "./dist/index.js"
