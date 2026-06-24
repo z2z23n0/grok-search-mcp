@@ -22,7 +22,7 @@ describe('grok CLI adapter', () => {
   });
 
   it('builds expected Grok single-turn args', () => {
-    const args = buildGrokArgs('search prompt', config);
+    const args = buildGrokArgs('search prompt', config, 'x');
 
     expect(args).toContain('--single');
     expect(args).toContain('search prompt');
@@ -33,6 +33,24 @@ describe('grok CLI adapter', () => {
     expect(args).toContain('--no-plan');
     expect(args).toContain('--model');
     expect(args).toContain('grok-build');
+  });
+
+  it('allows web fetch for web searches without enabling unrelated tools', () => {
+    const args = buildGrokArgs('search prompt', config, 'web');
+
+    expect(args).toContain('--tools');
+    expect(args).toContain('web_search,web_fetch');
+    expect(args).toContain('--allow');
+    expect(args).toContain('WebFetch');
+    expect(args).not.toContain('--always-approve');
+  });
+
+  it('does not restrict X searches to web tools', () => {
+    const args = buildGrokArgs('search prompt', config, 'x');
+
+    expect(args).not.toContain('--tools');
+    expect(args).not.toContain('web_search,web_fetch');
+    expect(args).not.toContain('WebFetch');
   });
 
   it('maps missing binary errors', () => {

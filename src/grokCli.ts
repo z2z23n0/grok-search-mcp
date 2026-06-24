@@ -43,7 +43,10 @@ export const ensureProfileHome = async (config: RuntimeConfig): Promise<void> =>
   await mkdir(join(config.profileHome, '.local', 'share'), { recursive: true });
 };
 
-export const buildGrokArgs = (prompt: string, config: RuntimeConfig): string[] => [
+const toolArgsForMode = (mode: SearchMode): string[] =>
+  mode === 'web' ? ['--tools', 'web_search,web_fetch', '--allow', 'WebFetch'] : [];
+
+export const buildGrokArgs = (prompt: string, config: RuntimeConfig, mode: SearchMode): string[] => [
   '--single',
   prompt,
   '--output-format',
@@ -52,6 +55,7 @@ export const buildGrokArgs = (prompt: string, config: RuntimeConfig): string[] =
   '--no-subagents',
   '--no-memory',
   '--no-plan',
+  ...toolArgsForMode(mode),
   '--model',
   config.model,
   '--max-turns',
@@ -107,7 +111,7 @@ export const searchWithGrok = async (
   config: RuntimeConfig,
 ): Promise<SearchResult> => {
   const prompt = buildPrompt(mode, args);
-  const stdout = await runGrok(buildGrokArgs(prompt, config), config);
+  const stdout = await runGrok(buildGrokArgs(prompt, config, mode), config);
   const text = extractGrokText(stdout);
   return parseSearchText(text, mode, config);
 };
